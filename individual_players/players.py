@@ -1,65 +1,79 @@
+from dataclasses import dataclass
+from itertools import groupby
 from logging import getLogger
-from typing import List
-
-from endgame.ncaabb import PlayerBoxScore, BoxScore
+from typing import Callable, Iterator, List
+from dataclasses_json import DataClassJsonMixin
+from endgame.ncaabb import PlayerBoxScore
+from endgame_aws import FlattenedBoxScore
 
 from .constants import POSSESSIONS_PER_FT
 from .per import get_unadjusted_rateless_per
-from .totals import compute_season_totals
+from .totals import SeasonTotals, compute_season_totals
 
 
 logger = getLogger(__name__)
 
 
-def get_player_performances(game_box_scores: List[BoxScore]):
+@dataclass
+class PlayerPerformance(DataClassJsonMixin):
+    player_id: str
+    value: float
+    game_id: str
+    team_id: str
+    # This is a float b/c it's an estimate
+    n_possessions: float
+
+
+_GAME_KEY: Callable[[FlattenedBoxScore], str] = lambda s: s.game_id
+_TEAM_KEY: Callable[[FlattenedBoxScore], str] = lambda s: s.team_id
+
+
+def get_player_performances(
+    season_box_scores: List[FlattenedBoxScore],
+) -> Iterator[PlayerPerformance]:
     """Get all the player performances for this season"""
-    totals, team_totals = compute_season_totals(game_box_scores)
+    totals, team_totals = compute_season_totals(season_box_scores)
 
     if totals.assict_pct <= 0.1:
         logger.info("Skipping season b/c it doesn't seem like assists were counted")
-        return []
+        return
     if totals.turnovers / totals.assists < 0.1:
         logger.info("Skipping season b/c it doesn't seem like turnovers were counted")
-        return []
+        return
 
-    values = []
-    for game_box_score in game_box_scores:
-        game_possessions = _get_possessions(game_box_score)
-        if game_possessions == 0:
-            continue
-        player_possessions = distribute_player_possessions(
-            game_box_score.home.players, game_possessions / 2
+    for game_id, game_box_scores in groupby(
+        sorted(season_box_scores, key=_GAME_KEY), key=_GAME_KEY
+    ):
+        yield from _get_game_performances(
+            list(game_box_scores), game_id, totals, team_totals
         )
-        for player, possessions in zip(game_box_score.home.players, player_possessions):
-            value = get_unadjusted_rateless_per(
-                player, totals, team_totals[game_box_score.home.team_id]
-            )
-            values.append(
-                (
-                    player.player_id,
-                    value,
-                    game_box_score.game_id,
-                    game_box_score.home.team_id,
-                    possessions,
-                )
-            )
+
+
+def _get_game_performances(
+    game_box_scores: list[FlattenedBoxScore],
+    game_id: str,
+    totals: SeasonTotals,
+    team_totals: dict[str, SeasonTotals],
+) -> Iterator[PlayerPerformance]:
+    game_possessions = _get_possessions(game_box_scores)
+    if game_possessions == 0:
+        return
+    for team_id, team_players in groupby(
+        sorted(game_box_scores, key=_TEAM_KEY), key=_TEAM_KEY
+    ):
+        player_list = list(team_players)
         player_possessions = distribute_player_possessions(
-            game_box_score.away.players, game_possessions / 2
+            player_list, game_possessions / 2
         )
-        for player, possessions in zip(game_box_score.away.players, player_possessions):
-            value = get_unadjusted_rateless_per(
-                player, totals, team_totals[game_box_score.away.team_id]
+        for player, possessions in zip(player_list, player_possessions):
+            value = get_unadjusted_rateless_per(player, totals, team_totals[team_id])
+            yield PlayerPerformance(
+                player_id=player.player_id,
+                value=value,
+                game_id=game_id,
+                team_id=team_id,
+                n_possessions=possessions,
             )
-            values.append(
-                (
-                    player.player_id,
-                    value,
-                    game_box_score.game_id,
-                    game_box_score.away.team_id,
-                    possessions,
-                )
-            )
-    return values
 
 
 def distribute_player_possessions(
@@ -122,7 +136,5 @@ def _get_player_possessions(player_box_score: PlayerBoxScore) -> float:
     )
 
 
-def _get_possessions(game_box_score: BoxScore) -> float:
-    return sum(_get_player_possessions(p) for p in game_box_score.home.players) + sum(
-        _get_player_possessions(p) for p in game_box_score.away.players
-    )
+def _get_possessions(player_box_scores: list[FlattenedBoxScore]) -> float:
+    return sum(map(_get_player_possessions, player_box_scores))

@@ -2,7 +2,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, fields
 from typing import Counter as CounterType, DefaultDict, Dict, Tuple, List
 
-from endgame.ncaabb.box_score.all import BoxScore
+from endgame_aws import FlattenedBoxScore
 
 from .constants import POSSESSIONS_PER_FT
 
@@ -81,7 +81,7 @@ _STATS_TO_TOTAL = frozenset(f.name for f in fields(SeasonTotals))
 
 
 def compute_season_totals(
-    season_games: List[BoxScore],
+    box_scores: List[FlattenedBoxScore],
 ) -> Tuple[SeasonTotals, Dict[str, SeasonTotals]]:
     """
     league_totals
@@ -91,15 +91,11 @@ def compute_season_totals(
     """
     totals: CounterType[str] = Counter()
     team_totals: DefaultDict[str, Counter] = defaultdict(Counter)
-    for game in season_games:
-        for player in game.home.players:
-            for stat in _STATS_TO_TOTAL:
-                totals[stat] += getattr(player, stat)
-                team_totals[game.home.team_id][stat] += getattr(player, stat)
-        for player in game.away.players:
-            for stat in _STATS_TO_TOTAL:
-                totals[stat] += getattr(player, stat)
-                team_totals[game.away.team_id][stat] += getattr(player, stat)
+    for player in box_scores:
+        for stat in _STATS_TO_TOTAL:
+            totals[stat] += getattr(player, stat)
+            team_totals[player.team_id][stat] += getattr(player, stat)
+
     team_total_dict = {
         team_id: SeasonTotals(**team_total)
         for team_id, team_total in team_totals.items()

@@ -22,7 +22,7 @@ def main(gender: str):
         vpp_mean=career_vpp.mean(),
         vpp_variance=career_vpp.var(),
     )
-    model.save(f"{gender}_league.pkl")
+    model.save(f"models/{gender}_league.pkl")
 
 
 if __name__ == "__main__":

@@ -14,17 +14,19 @@ async def _read_season_performance(
     season_box_scores = await read_box_scores(
         bucket, f"seasons/{year}/{league}_box.csv"
     )
+    # TODO: Figure out why there's nones earlier in the flow
+    season_box_scores = [b for b in season_box_scores if b.minutes_played is not None]
     return get_player_performances(season_box_scores)
 
 
 async def main():
     bucket = Config.init_from_file().bucket
     for league in ["mens", "womens"]:
-        for year in range(2010, 2022):
+        for year in range(2010, 2023):
             print(league, year)
             performances = await _read_season_performance(bucket, league, year)
             with open(
-                f"all_performances_{league}_{year}.csv", "w", encoding="utf-8"
+                f"data/all_performances_{league}_{year}.csv", "w", encoding="utf-8"
             ) as file:
                 writer = DictWriter(
                     file,

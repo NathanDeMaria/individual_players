@@ -8,6 +8,8 @@ authors = []
 python = "^3.11"
 scikit-learn = "^1.0.2"
 endgame-aws = {git = "https://github.com/NathanDeMaria/EndGame.git", rev = "f5a76a551a45308feafda1af20f1fd09f5f7357d", subdirectory = "py-endgame-aws"}
+statsmodels = "^0.13.5"
+tqdm = "^4.64.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"

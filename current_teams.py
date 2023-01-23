@@ -42,6 +42,11 @@ def main():
         with open(f"data/{league}_rosters.json", "w", encoding="utf-8") as file:
             json.dump(rosters, file)
         league_ratings.to_csv(f"data/{league}_player_ratings.csv")
+        (
+            pd.DataFrame(defense_callback.defense_ratings)
+            .T.rename(columns={0: "vpp", 1: "vpp_var"})
+            .to_csv(f"data/{league}_player_ratings_defense.csv")
+        )
 
 
 if __name__ == "__main__":

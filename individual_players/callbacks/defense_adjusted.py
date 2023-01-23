@@ -31,6 +31,10 @@ class DefenseAdjustedCallback:
         return self._adjusted_offense_rating
 
     @property
+    def defense_ratings(self) -> PlayerRatings:
+        return self._defense_ratings
+
+    @property
     def team_callback(self) -> TeamCallback:
         def store_defense_adjustment(
             _: str, player_ratings: PlayerRatings, team: pd.DataFrame

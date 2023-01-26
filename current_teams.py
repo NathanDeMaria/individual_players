@@ -19,11 +19,17 @@ def main():
         performances = add_opponent(performances)
         model = LeagueModel.load(f"./models/{league}_league.pkl")
         defense_model = LeagueModel.load(f"./models/{league}_league_defense.pkl")
+        adjusted_model = LeagueModel.load(f"./models/{league}_league_adjusted.pkl")
         performances = performances.assign(
             vpp_sd=model.possessions_to_vpp_std(performances.n_possessions),
             defense_sd=defense_model.possessions_to_vpp_std(performances.n_possessions),
+            adjusted_vpp_sd=adjusted_model.possessions_to_vpp_std(
+                performances.n_possessions
+            ),
         )
-        defense_callback = callbacks.DefenseAdjustedCallback(defense_model, model)
+        defense_callback = callbacks.DefenseAdjustedCallback(
+            defense_model, adjusted_model
+        )
         _ = update_loop(
             performances,
             model,

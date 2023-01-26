@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import NamedTuple
 import pandas as pd
 
 from .types import TeamCallback, PlayerCallback
@@ -6,11 +7,16 @@ from ..types import PlayerRatings
 from ..league_model import LeagueModel
 
 
-class DefenseAdjustedCallback:
+class _DefensiveAdjustedPerformance(NamedTuple):
+    player_id: str
+    n_possessions: float
+    adjusted_performance: float
+
+
+class DefenseAdjustingCallback:
     def __init__(
         self,
         defense_model: LeagueModel,
-        offense_adjusted_model: LeagueModel,
     ):
         self._defense_model = defense_model
 
@@ -21,16 +27,7 @@ class DefenseAdjustedCallback:
         )
         self._defense_adjustment: dict[str, float] = {}
 
-        self._adjusted_offense_rating: PlayerRatings = defaultdict(
-            lambda: (
-                offense_adjusted_model.vpp_mean,
-                offense_adjusted_model.vpp_variance,
-            )
-        )
-
-    @property
-    def adjusted_offense_rating(self) -> PlayerRatings:
-        return self._adjusted_offense_rating
+        self._adjusted_offensive_performances: list[_DefensiveAdjustedPerformance] = []
 
     @property
     def defense_ratings(self) -> PlayerRatings:
@@ -53,12 +50,14 @@ class DefenseAdjustedCallback:
     def player_callback(self) -> PlayerCallback:
         def store_result(_: str, player_performance):
             self._update_defense_rating(player_performance)
-            self._update_adjusted_offensive_rating(player_performance)
+            self._store_adjusted_offensive_performance(player_performance)
 
         return store_result
 
     @property
     def defensive_performances(self) -> pd.DataFrame:
+        # TODO: can I stop exposing some of these?
+        # Or maybe inherit as I build "layers?"
         return pd.DataFrame(self._defensive_performances).rename(
             columns={"opponent_vs_expectation": "value"}
         )
@@ -70,7 +69,7 @@ class DefenseAdjustedCallback:
             defense_mu, defense_var, opp_performance, player_performance.defense_sd
         )
 
-    def _get_defensive_adjustment(self, opponent_id: str, team) -> float:
+    def _get_defensive_adjustment(self, opponent_id: str, team):
         total_possessions = team.n_possessions.sum()
         weighted_adjustment = (
             sum(
@@ -81,19 +80,24 @@ class DefenseAdjustedCallback:
         )
         self._defense_adjustment[opponent_id] = weighted_adjustment
 
-    def _update_adjusted_offensive_rating(self, player_performance):
-        rating = self._adjusted_offense_rating[player_performance.player_id]
+    def _store_adjusted_offensive_performance(self, player_performance):
         defense_adjustment = self._defense_adjustment[player_performance.opponent_id]
-
-        # TODO: double check the sign here
         adjusted_performance = (
             player_performance.value / player_performance.n_possessions
             - defense_adjustment
         )
-        self._adjusted_offense_rating[player_performance.player_id] = _update_rating(
-            *rating,
-            adjusted_performance,
-            player_performance.adjusted_vpp_sd,
+        self._adjusted_offensive_performances.append(
+            _DefensiveAdjustedPerformance(
+                n_possessions=player_performance.n_possessions,
+                player_id=player_performance.player_id,
+                adjusted_performance=adjusted_performance,
+            )
+        )
+
+    @property
+    def adjusted_performances(self) -> pd.DataFrame:
+        return pd.DataFrame(self._adjusted_offensive_performances).rename(
+            columns={"adjusted_performance": "value"}
         )
 
 

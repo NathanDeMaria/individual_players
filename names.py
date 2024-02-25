@@ -4,7 +4,7 @@ from functools import partial
 from pathlib import Path
 from typing import Optional
 import pandas as pd
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from fire import Fire
 
 from endgame.web import get
@@ -39,11 +39,13 @@ async def _get_player_info(league: str, player_id: str) -> dict:
     )
 
     team_info = soup.select_one("ul.PlayerHeader__Team_Info")
+    if team_info is None:
+        raise ValueError
     pieces = team_info.select("li")
     if len(pieces) > 1:
-        *_, number, position = pieces
-        position = position.text.strip()
-        number = number.text.strip()
+        *_, number_tag, position_tag = pieces
+        position = position_tag.text.strip()
+        number = number_tag.text.strip()
     else:
         position = pieces[0].text.strip()
         number = "?"
@@ -55,10 +57,9 @@ async def _get_player_info(league: str, player_id: str) -> dict:
         team_id = "?"
         team_name = "?"
 
-    other_columns = {
-        item.select_one("div.ttu").text: item.select_one("div.fw-medium").text
-        for item in soup.select("ul.PlayerHeader__Bio_List li")
-    }
+    other_columns = dict(
+        _get_column_value(item) for item in soup.select("ul.PlayerHeader__Bio_List li")
+    )
     await response.save_if_necessary()
 
     return {
@@ -70,6 +71,16 @@ async def _get_player_info(league: str, player_id: str) -> dict:
         "player_name": player_name,
         **other_columns,
     }
+
+
+def _get_column_value(item: Tag) -> tuple[str, str]:
+    name_tag = item.select_one("div.ttu")
+    value_tag = item.select_one("div.fw-medium")
+    if name_tag is None or value_tag is None:
+        raise ValueError
+    name = name_tag.text
+    value = value_tag.text
+    return name, value
 
 
 async def _try_get_player_info(league: str, player_id: str) -> Optional[dict]:
@@ -85,7 +96,7 @@ _LEAGUES = ["mens", "womens"]
 
 def _get_all_player_ids(league: str) -> list[int]:
     player_ratings = pd.read_csv(f"./data/{league}_player_ratings.csv", index_col=0)
-    return player_ratings.index
+    return [int(i) for i in player_ratings.index]
 
 
 def _get_starting_point(csv_path: Path) -> tuple[pd.DataFrame, set[int]]:

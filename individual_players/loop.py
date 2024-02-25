@@ -1,3 +1,5 @@
+# mypy: disable-error-code="arg-type"
+# because there's lots of pandas in here
 import pandas as pd
 from tqdm import tqdm
 
@@ -6,12 +8,13 @@ from .callbacks import TeamCallback, PlayerCallback
 from .priors import PriorGetter, get_simple_prior, Player
 from .ratings import PlayerRatings
 
+
 def update_loop(
     performances: pd.DataFrame,
     model: LeagueModel,
-    prior_getter: PriorGetter = None,
-    team_callbacks: list[TeamCallback] = None,
-    player_callbacks: list[PlayerCallback] = None,
+    prior_getter: PriorGetter | None = None,
+    team_callbacks: list[TeamCallback] | None = None,
+    player_callbacks: list[PlayerCallback] | None = None,
 ) -> pd.DataFrame:
     """Assuming the performances DF is sorted in time,
     run the player rating update logic"""
@@ -29,11 +32,11 @@ def update_loop(
             for player_performance in team.itertuples():
                 for player_callback in player_callbacks:
                     player_callback(team_id, player_performance)
-                player = Player(player_performance.player_id, player_performance.team_id)
-                current_rating = player_ratings.get_rating(player)
-                new_rating = _update_rating(
-                    *current_rating, player_performance
+                player = Player(
+                    player_performance.player_id, player_performance.team_id
                 )
+                current_rating = player_ratings.get_rating(player)
+                new_rating = _update_rating(*current_rating, player_performance)
                 player_ratings.update_rating(player_performance.player_id, new_rating)
 
     return player_ratings.to_data_frame()

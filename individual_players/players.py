@@ -6,6 +6,8 @@ from dataclasses_json import DataClassJsonMixin
 from endgame.ncaabb import PlayerBoxScore
 from endgame_aws import FlattenedBoxScore
 
+from .filled_box_score import FilledOutBoxScore
+
 from .constants import POSSESSIONS_PER_FT
 from .per import get_unadjusted_rateless_per
 from .totals import SeasonTotals, compute_season_totals
@@ -66,7 +68,9 @@ def _get_game_performances(
             player_list, game_possessions / 2
         )
         for player, possessions in zip(player_list, player_possessions):
-            value = get_unadjusted_rateless_per(player, totals, team_totals[team_id])
+            value = get_unadjusted_rateless_per(
+                FilledOutBoxScore.from_box_score(player), totals, team_totals[team_id]
+            )
             yield PlayerPerformance(
                 player_id=player.player_id,
                 value=value,
@@ -77,7 +81,7 @@ def _get_game_performances(
 
 
 def distribute_player_possessions(
-    players: List[PlayerBoxScore], team_total_possessions: float
+    players: List[FlattenedBoxScore], team_total_possessions: float
 ) -> List[float]:
     """
     Get the # of possessions each player was on the court for
@@ -95,7 +99,8 @@ def distribute_player_possessions(
         return [team_total_possessions for _ in players]
     if any(p.minutes_played is not None and p.minutes_played != 0 for p in players):
         return _divvy_possessions_by_minutes(
-            [p.minutes_played for p in players], team_total_possessions
+            [p.minutes_played for p in players if p.minutes_played is not None],
+            team_total_possessions,
         )
     return _divvy_possessions_by_usage(
         [_get_player_possessions(p) for p in players], team_total_possessions
@@ -128,6 +133,13 @@ def _divvy_possessions_by_usage(
 
 # TODO: put these on the box score classes? Or some static utils module?
 def _get_player_possessions(player_box_score: PlayerBoxScore) -> float:
+    if (
+        player_box_score.field_goal_attempts is None
+        or player_box_score.offensive_rebounds is None
+        or player_box_score.turnovers is None
+        or player_box_score.free_throw_attempts is None
+    ):
+        raise ValueError
     return (
         player_box_score.field_goal_attempts
         - player_box_score.offensive_rebounds

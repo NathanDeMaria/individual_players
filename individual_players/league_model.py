@@ -1,12 +1,10 @@
 from collections import defaultdict
-from typing import NamedTuple, Callable, TypeVar, Union
+from typing import NamedTuple, Callable, TypeVar, Union, Self
 import dill
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-# TODO: update mypy to a version with https://github.com/python/mypy/pull/14041
-_Self = TypeVar("_Self")
 _NumericType = TypeVar(
     "_NumericType", bound=Union[int, float, complex, str, bytes, np.generic]
 )
@@ -21,14 +19,14 @@ def _get_player_averages(performances: pd.DataFrame) -> pd.DataFrame:
         performances.groupby("player_id")
         .agg(
             {
-                "value": [("total_value", "sum")],
-                "n_possessions": [("n_games", "count"), ("total_possessions", "sum")],
+                "value": [("total_value", "sum")],  # type: ignore[list-item]
+                "n_possessions": [("n_games", "count"), ("total_possessions", "sum")],  # type: ignore[list-item]
             }
         )
         .reset_index()
     )
     other_columns = by_player.columns.get_level_values(1).tolist()[1:]
-    by_player.columns = ["player_id"] + other_columns
+    by_player.columns = ["player_id"] + other_columns  # type: ignore[assignment]
 
     # Reasonable # of games
     by_player = by_player[by_player.n_games > 15]
@@ -142,7 +140,7 @@ class LeagueModel(NamedTuple):
             dill.dump(self, file)
 
     @classmethod
-    def load(cls: type[_Self], filename: str) -> _Self:
+    def load(cls: type[Self], filename: str) -> Self:
         """Read league params from a pickle file"""
         with open(filename, "rb") as file:
             return dill.load(file)

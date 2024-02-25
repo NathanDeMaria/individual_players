@@ -20,7 +20,7 @@ def main(gender: str):
     model = LeagueModel(
         possessions_to_vpp_std=get_vpp_sd,
         vpp_mean=career_vpp.mean(),
-        vpp_variance=career_vpp.var(),
+        vpp_variance=career_vpp.var(),  # type: ignore[arg-type]
     )
     model.save(f"models/{gender}_league.pkl")
 

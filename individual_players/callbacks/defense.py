@@ -1,8 +1,10 @@
+# mypy: disable-error-code="arg-type,operator,misc"
+# because there's lots of pandas in here
 from typing import NamedTuple
 import pandas as pd
 
 from .types import TeamCallback, PlayerCallback
-from ..types import RatingsLookup
+from ..ratings import PlayerRatings, Player
 
 
 class _DefensivePerformance(NamedTuple):
@@ -12,7 +14,7 @@ class _DefensivePerformance(NamedTuple):
 
 
 class DefenseCallback:
-    def __init__(self):
+    def __init__(self) -> None:
         # team -> VPP in most recent game
         # We're just banking on the callbacks being called back to back
         self._performances: dict[str, float] = {}
@@ -21,7 +23,7 @@ class DefenseCallback:
     @property
     def team_callback(self) -> TeamCallback:
         def store_game_performance(
-            _: str, player_ratings: RatingsLookup, team: pd.DataFrame
+            _: str, player_ratings: PlayerRatings, team: pd.DataFrame
         ):
             opponent_ids = team.opponent_id.unique()
             assert len(opponent_ids) == 1
@@ -29,7 +31,8 @@ class DefenseCallback:
             vpp = team.value.sum() / team.n_possessions.sum()
             expected_vpp = (
                 sum(
-                    player_ratings[p.player_id][0] * p.n_possessions
+                    player_ratings.get_rating(Player(p.player_id, p.team_id))[0]
+                    * p.n_possessions
                     for p in team.itertuples()
                 )
                 / team.n_possessions.sum()

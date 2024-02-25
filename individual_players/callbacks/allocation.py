@@ -1,3 +1,5 @@
+# mypy: disable-error-code="arg-type,misc"
+# because there's lots of pandas in here
 import pandas as pd
 
 from ..allocator import MinutesAllocation, PossessionAllocator
@@ -6,7 +8,7 @@ from ..ratings import PlayerRatings, Player
 
 
 class PossessionAllocationCallbacks:
-    def __init__(self):
+    def __init__(self) -> None:
         self._team_ranks: dict[str, dict[str, int]] = {}
         self._allocations: list[MinutesAllocation] = []
 
@@ -15,8 +17,10 @@ class PossessionAllocationCallbacks:
         def set_pregame_ratings(
             team_id: str, player_ratings: PlayerRatings, team: pd.DataFrame
         ):
-            pregame_ratings = {
-                player_performance.player_id: player_ratings.get_rating(Player(player_performance.player_id, team_id))[0]
+            pregame_ratings: dict[str, float] = {
+                player_performance.player_id: player_ratings.get_rating(
+                    Player(player_performance.player_id, team_id)
+                )[0]
                 for player_performance in team.itertuples()
             }
             self._team_ranks[team_id] = {

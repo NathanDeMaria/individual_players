@@ -1,11 +1,10 @@
-from endgame.ncaabb.box_score import PlayerBoxScore
-
 from .constants import POSSESSIONS_PER_FT
 from .totals import SeasonTotals
+from .filled_box_score import FilledOutBoxScore
 
 
 def get_unadjusted_rateless_per(
-    player_box: PlayerBoxScore, league_stats: SeasonTotals, team_stats: SeasonTotals
+    player_box: FilledOutBoxScore, league_stats: SeasonTotals, team_stats: SeasonTotals
 ) -> float:
     """
     uPER from https://en.wikipedia.org/wiki/Player_efficiency_rating
@@ -38,9 +37,9 @@ def _calculate_made_ft_value(team_stats: SeasonTotals) -> float:
 
 
 def _calculate_net_possessions_earned(
-    player_box: PlayerBoxScore, defensive_rebound_percentage: float
+    player_box: FilledOutBoxScore, defensive_rebound_percentage: float
 ) -> float:
-    net_possessions = 0
+    net_possessions = 0.0
 
     net_possessions += defensive_rebound_percentage * player_box.offensive_rebounds
     net_possessions += player_box.steals

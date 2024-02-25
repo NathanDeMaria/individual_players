@@ -42,7 +42,7 @@ class DefenseAdjustedCallback:
     @property
     def team_callback(self) -> TeamCallback:
         def store_defense_adjustment(
-            _: str, player_ratings: RatingsLookup, team: pd.DataFrame
+            _: str, player_ratings: PlayerRatings, team: pd.DataFrame
         ):
             opponent_id = _get_opponent_id(team)
             self._defensive_performances[opponent_id] = _get_defensive_difference(
@@ -73,7 +73,7 @@ class DefenseAdjustedCallback:
             defense_mu, defense_var, opp_performance, player_performance.defense_sd
         )
 
-    def _get_defensive_adjustment(self, opponent_id: str, team) -> float:
+    def _get_defensive_adjustment(self, opponent_id: str, team) -> None:
         total_possessions = team.n_possessions.sum()
         weighted_adjustment = (
             sum(
@@ -121,7 +121,11 @@ def _get_opponent_id(team) -> str:
 def _get_defensive_difference(team, player_ratings: PlayerRatings) -> float:
     vpp = team.value.sum() / team.n_possessions.sum()
     expected_vpp = (
-        sum(player_ratings.get_rating(Player(p.player_id, p.team_id))[0] * p.n_possessions for p in team.itertuples())
+        sum(
+            player_ratings.get_rating(Player(p.player_id, p.team_id))[0]
+            * p.n_possessions
+            for p in team.itertuples()
+        )
         / team.n_possessions.sum()
     )
     return vpp - expected_vpp

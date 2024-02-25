@@ -1,3 +1,5 @@
+# mypy: disable-error-code="arg-type"
+# because there's lots of pandas in here
 import pandas as pd
 
 from .types import PriorGetter, Prior, Player

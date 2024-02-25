@@ -4,7 +4,7 @@ import pandas as pd
 
 from .types import TeamCallback, PlayerCallback
 from ..types import RatingsLookup
-from ..ratings import PlayerRatings
+from ..ratings import PlayerRatings, Player
 from ..league_model import LeagueModel
 
 
@@ -123,7 +123,11 @@ def _get_opponent_id(team) -> str:
 def _get_defensive_difference(team, player_ratings: PlayerRatings) -> float:
     vpp = team.value.sum() / team.n_possessions.sum()
     expected_vpp = (
-        sum(player_ratings[p.player_id][0] * p.n_possessions for p in team.itertuples())
+        sum(
+            player_ratings.get_rating(Player(p.player_id, p.team_id))[0]
+            * p.n_possessions
+            for p in team.itertuples()
+        )
         / team.n_possessions.sum()
     )
     return vpp - expected_vpp

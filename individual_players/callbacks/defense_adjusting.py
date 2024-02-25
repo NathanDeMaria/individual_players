@@ -3,7 +3,8 @@ from typing import NamedTuple
 import pandas as pd
 
 from .types import TeamCallback, PlayerCallback
-from ..types import PlayerRatings
+from ..types import RatingsLookup
+from ..ratings import PlayerRatings
 from ..league_model import LeagueModel
 
 
@@ -22,7 +23,7 @@ class DefenseAdjustingCallback:
 
         self._defensive_performances: dict[str, float] = {}
 
-        self._defense_ratings: PlayerRatings = defaultdict(
+        self._defense_ratings: RatingsLookup = defaultdict(
             lambda: (defense_model.vpp_mean, defense_model.vpp_variance)
         )
         self._defense_adjustment: dict[str, float] = {}
@@ -30,7 +31,7 @@ class DefenseAdjustingCallback:
         self._adjusted_offensive_performances: list[_DefensiveAdjustedPerformance] = []
 
     @property
-    def defense_ratings(self) -> PlayerRatings:
+    def defense_ratings(self) -> RatingsLookup:
         return self._defense_ratings
 
     @property

@@ -1,1 +1,1 @@
-PlayerRatings = dict[str, tuple[float, float]]
+RatingsLookup = dict[str, tuple[float, float]]

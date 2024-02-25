@@ -2,8 +2,6 @@ import pickle
 from typing import NamedTuple
 import pandas as pd
 
-from .types import PlayerRatings
-
 
 class MinutesAllocation(NamedTuple):
     possessions_proportion: float
@@ -22,7 +20,7 @@ class PossessionAllocator:
             .cummin()
         )
 
-    def allocate(self, player_ratings: PlayerRatings) -> dict[str, float]:
+    def allocate(self, player_ratings: dict[str, tuple[float, float]]) -> dict[str, float]:
         ranked = sorted(player_ratings.items(), key=lambda kv: kv[1][0], reverse=True)
         scaled_proportions = self._possessions_proportion[: len(ranked)]
         scaled_proportions /= scaled_proportions.sum()

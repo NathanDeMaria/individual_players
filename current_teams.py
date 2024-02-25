@@ -6,6 +6,7 @@ from individual_players import (
     callbacks,
     update_loop,
     LeagueModel,
+    build_prior_getter,
 )
 from individual_players.league_model import add_opponent
 
@@ -33,6 +34,7 @@ def main():
         _ = update_loop(
             performances,
             model,
+            build_prior_getter(league),
             [defense_callback.team_callback],
             [defense_callback.player_callback],
         )

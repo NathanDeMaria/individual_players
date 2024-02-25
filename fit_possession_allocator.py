@@ -24,7 +24,10 @@ def main(league: str):
     )
     allocations = callbacks.PossessionAllocationCallbacks()
     update_loop(
-        performances, model, [allocations.team_callback], [allocations.player_callback]
+        performances,
+        model,
+        team_callbacks=[allocations.team_callback],
+        player_callbacks=[allocations.player_callback],
     )
     allocations.allocator.save(str(Path("models", f"{league}_allocator.pkl")))
 

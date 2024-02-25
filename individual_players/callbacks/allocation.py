@@ -1,7 +1,8 @@
 import pandas as pd
 
 from ..allocator import MinutesAllocation, PossessionAllocator
-from .types import TeamCallback, PlayerCallback, PlayerRatings
+from .types import TeamCallback, PlayerCallback
+from ..ratings import PlayerRatings, Player
 
 
 class PossessionAllocationCallbacks:
@@ -15,9 +16,7 @@ class PossessionAllocationCallbacks:
             team_id: str, player_ratings: PlayerRatings, team: pd.DataFrame
         ):
             pregame_ratings = {
-                player_performance.player_id: player_ratings[
-                    player_performance.player_id
-                ][0]
+                player_performance.player_id: player_ratings.get_rating(Player(player_performance.player_id, team_id))[0]
                 for player_performance in team.itertuples()
             }
             self._team_ranks[team_id] = {

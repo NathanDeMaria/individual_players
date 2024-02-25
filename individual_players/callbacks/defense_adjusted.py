@@ -1,8 +1,11 @@
 from collections import defaultdict
 import pandas as pd
 
+from individual_players.priors.types import Player
+
 from .types import TeamCallback, PlayerCallback
-from ..types import PlayerRatings
+from ..types import RatingsLookup
+from ..ratings import PlayerRatings
 from ..league_model import LeagueModel
 
 
@@ -16,12 +19,12 @@ class DefenseAdjustedCallback:
 
         self._defensive_performances: dict[str, float] = {}
 
-        self._defense_ratings: PlayerRatings = defaultdict(
+        self._defense_ratings: RatingsLookup = defaultdict(
             lambda: (defense_model.vpp_mean, defense_model.vpp_variance)
         )
         self._defense_adjustment: dict[str, float] = {}
 
-        self._adjusted_offense_rating: PlayerRatings = defaultdict(
+        self._adjusted_offense_rating: RatingsLookup = defaultdict(
             lambda: (
                 offense_adjusted_model.vpp_mean,
                 offense_adjusted_model.vpp_variance,
@@ -29,17 +32,17 @@ class DefenseAdjustedCallback:
         )
 
     @property
-    def adjusted_offense_rating(self) -> PlayerRatings:
+    def adjusted_offense_rating(self) -> RatingsLookup:
         return self._adjusted_offense_rating
 
     @property
-    def defense_ratings(self) -> PlayerRatings:
+    def defense_ratings(self) -> RatingsLookup:
         return self._defense_ratings
 
     @property
     def team_callback(self) -> TeamCallback:
         def store_defense_adjustment(
-            _: str, player_ratings: PlayerRatings, team: pd.DataFrame
+            _: str, player_ratings: RatingsLookup, team: pd.DataFrame
         ):
             opponent_id = _get_opponent_id(team)
             self._defensive_performances[opponent_id] = _get_defensive_difference(
@@ -118,7 +121,7 @@ def _get_opponent_id(team) -> str:
 def _get_defensive_difference(team, player_ratings: PlayerRatings) -> float:
     vpp = team.value.sum() / team.n_possessions.sum()
     expected_vpp = (
-        sum(player_ratings[p.player_id][0] * p.n_possessions for p in team.itertuples())
+        sum(player_ratings.get_rating(Player(p.player_id, p.team_id))[0] * p.n_possessions for p in team.itertuples())
         / team.n_possessions.sum()
     )
     return vpp - expected_vpp

@@ -2,7 +2,7 @@ from typing import NamedTuple
 import pandas as pd
 
 from .types import TeamCallback, PlayerCallback
-from ..types import PlayerRatings
+from ..types import RatingsLookup
 
 
 class _DefensivePerformance(NamedTuple):
@@ -21,7 +21,7 @@ class DefenseCallback:
     @property
     def team_callback(self) -> TeamCallback:
         def store_game_performance(
-            _: str, player_ratings: PlayerRatings, team: pd.DataFrame
+            _: str, player_ratings: RatingsLookup, team: pd.DataFrame
         ):
             opponent_ids = team.opponent_id.unique()
             assert len(opponent_ids) == 1

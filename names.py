@@ -10,13 +10,16 @@ from fire import Fire
 from endgame.web import get
 
 
+_PARALLEL_MAX = asyncio.Semaphore(10)
+
+
 def _build_link(league: str, player_id: str) -> str:
     return f"https://www.espn.com/{league}-college-basketball/player/_/id/{player_id}"
 
 
 def _get_team_link(league: str, raw, team_info) -> Optional[str]:
     if match := re.search(
-        f"https://www.espn.com/{league}-college-basketball/team/_/id/[0-9]+/[0-9a-z\\-]+",
+        f"https?://www.espn.com/{league}-college-basketball/team/_/id/[0-9]+/[0-9a-z\\-]+",
         raw,
     ):
         return match.group()
@@ -27,7 +30,8 @@ def _get_team_link(league: str, raw, team_info) -> Optional[str]:
 
 async def _get_player_info(league: str, player_id: str) -> dict:
     url = _build_link(league, player_id)
-    response = await get(url)
+    async with _PARALLEL_MAX:
+        response = await get(url)
     soup = BeautifulSoup(response.data, features="html.parser")
 
     player_name = " ".join(

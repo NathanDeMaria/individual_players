@@ -4,6 +4,7 @@ from typing import Iterator
 from endgame_aws import read_box_scores, Config
 
 from individual_players.players import PlayerPerformance, get_player_performances
+from individual_players.year import get_current_year
 
 
 async def _read_season_performance(
@@ -22,7 +23,7 @@ async def _read_season_performance(
 async def main():
     bucket = Config.init_from_file().bucket
     for league in ["mens", "womens"]:
-        for year in range(2010, 2023):
+        for year in range(2022, get_current_year() + 1):
             print(league, year)
             performances = await _read_season_performance(bucket, league, year)
             with open(

@@ -1,4 +1,3 @@
-import json
 import pandas as pd
 
 from individual_players import (
@@ -34,21 +33,14 @@ def main():
         _ = update_loop(
             performances,
             model,
-            build_prior_getter(league),
+            None,
             [defense_callback.team_callback],
             [defense_callback.player_callback],
         )
         league_ratings = pd.DataFrame(
             defense_callback.adjusted_offense_rating
         ).T.rename(columns={0: "vpp", 1: "vpp_var"})
-        rosters = {
-            team_id: team[team.game_id == team.game_id.max()]
-            .merge(league_ratings, left_on="player_id", right_index=True)
-            .player_id.tolist()
-            for team_id, team in performances.groupby("team_id")
-        }
-        with open(f"data/{league}_rosters.json", "w", encoding="utf-8") as file:
-            json.dump(rosters, file)
+        
         league_ratings.to_csv(f"data/{league}_player_ratings.csv")
         (
             pd.DataFrame(defense_callback.defense_ratings)

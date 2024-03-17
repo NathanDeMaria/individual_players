@@ -5,9 +5,7 @@ from individual_players import (
     callbacks,
     update_loop,
     LeagueModel,
-    build_prior_getter,
 )
-from individual_players.league_model import add_opponent
 
 
 _LEAGUES = ["womens", "mens"]
@@ -16,7 +14,6 @@ _LEAGUES = ["womens", "mens"]
 def main():
     for league in _LEAGUES:
         performances = build_combined_df(league)
-        performances = add_opponent(performances)
         model = LeagueModel.load(f"./models/{league}_league.pkl")
         defense_model = LeagueModel.load(f"./models/{league}_league_defense.pkl")
         adjusted_model = LeagueModel.load(f"./models/{league}_league_adjusted.pkl")

@@ -6,6 +6,7 @@ from .types import TeamCallback, PlayerCallback
 from ..types import RatingsLookup
 from ..ratings import PlayerRatings, Player
 from ..league_model import LeagueModel
+from ..priors import get_simple_prior, PriorGetter
 
 
 class _DefensiveAdjustedPerformance(NamedTuple):
@@ -18,20 +19,22 @@ class DefenseAdjustingCallback:
     def __init__(
         self,
         defense_model: LeagueModel,
+        prior_getter: PriorGetter | None = None,
     ):
         self._defense_model = defense_model
 
         self._defensive_performances: dict[str, float] = {}
 
-        self._defense_ratings: RatingsLookup = defaultdict(
-            lambda: (defense_model.vpp_mean, defense_model.vpp_variance)
-        )
+        if prior_getter is None:
+            prior_getter = get_simple_prior(defense_model)
+
+        self._defense_ratings = PlayerRatings(prior_getter)
         self._defense_adjustment: dict[str, float] = {}
 
         self._adjusted_offensive_performances: list[_DefensiveAdjustedPerformance] = []
 
     @property
-    def defense_ratings(self) -> RatingsLookup:
+    def defense_ratings(self) -> PlayerRatings:
         return self._defense_ratings
 
     @property
@@ -65,16 +68,17 @@ class DefenseAdjustingCallback:
 
     def _update_defense_rating(self, player_performance):
         opp_performance = self._defensive_performances[player_performance.opponent_id]
-        defense_mu, defense_var = self._defense_ratings[player_performance.player_id]
-        self._defense_ratings[player_performance.player_id] = _update_rating(
+        defense_mu, defense_var = self._defense_ratings.get_rating(Player(player_performance.player_id, player_performance.team_id))
+        new_rating = _update_rating(
             defense_mu, defense_var, opp_performance, player_performance.defense_sd
         )
+        self._defense_ratings.update_rating(player_performance.player_id, new_rating)
 
     def _get_defensive_adjustment(self, opponent_id: str, team):
         total_possessions = team.n_possessions.sum()
         weighted_adjustment = (
             sum(
-                self._defense_ratings[p.player_id][0] * p.n_possessions
+                self._defense_ratings.get_rating(Player(p.player_id, p.team_id))[0] * p.n_possessions
                 for p in team.itertuples()
             )
             / total_possessions

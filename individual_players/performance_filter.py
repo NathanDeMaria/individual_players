@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -9,7 +10,8 @@ _DATA_DIR = Path(__file__).parent.parent / "data"
 def build_combined_df(gender: str, verbose: bool = True) -> pd.DataFrame:
     player_performances = _load_all_seasons(gender)
     player_performances = _drop_bad_rows(player_performances, verbose)
-    return _drop_bad_players(player_performances, verbose)
+    player_performances = _drop_bad_players(player_performances, verbose)
+    return _add_opponent(player_performances)
 
 
 def _load_all_seasons(gender: str):
@@ -72,3 +74,24 @@ def _drop_bad_players(player_performances: pd.DataFrame, verbose: bool) -> pd.Da
     return player_performances[
         [g not in bad_games for g in player_performances.game_id]
     ]
+
+
+def _add_opponent(performances: pd.DataFrame) -> pd.DataFrame:
+    """Add a column for opp_team_id"""
+    unique_games = performances[["game_id", "team_id"]].drop_duplicates()
+    game_teams = defaultdict(list)
+    for row in unique_games.itertuples():
+        game_teams[row.game_id].append(row.team_id)
+    assert all(len(teams) == 2 for teams in game_teams.values())
+
+    game_team_df = (
+        pd.DataFrame(game_teams)
+        .T.reset_index()
+        .rename(columns={0: "team_id", 1: "opponent_id", "index": "game_id"})
+    )
+    other_half = game_team_df.rename(
+        columns={"team_id": "opponent_id", "opponent_id": "team_id"}
+    )
+    game_team_df = pd.concat([game_team_df, other_half], axis=0)
+
+    return performances.merge(game_team_df, on=["game_id", "team_id"])

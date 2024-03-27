@@ -1,5 +1,5 @@
 import pandas as pd
-
+from fire import Fire
 from individual_players import (
     build_combined_df,
     callbacks,
@@ -8,15 +8,15 @@ from individual_players import (
 )
 
 
-_LEAGUES = ["womens", "mens"]
+_LEAGUES = ["womens", ]"mens"]
 
 
-def main():
+def main(prior: str = ""):
     for league in _LEAGUES:
         performances = build_combined_df(league)
-        model = LeagueModel.load(f"./models/{league}_league.pkl")
-        defense_model = LeagueModel.load(f"./models/{league}_league_defense.pkl")
-        adjusted_model = LeagueModel.load(f"./models/{league}_league_adjusted.pkl")
+        model = LeagueModel.load(f"./models/{league}.pkl")
+        defense_model = LeagueModel.load(f"./models/{league}_defense{prior}.pkl")
+        adjusted_model = LeagueModel.load(f"./models/{league}_adjusted{prior}.pkl")
         performances = performances.assign(
             vpp_sd=model.possessions_to_vpp_std(performances.n_possessions),
             defense_sd=defense_model.possessions_to_vpp_std(performances.n_possessions),
@@ -38,13 +38,13 @@ def main():
             defense_callback.adjusted_offense_rating
         ).T.rename(columns={0: "vpp", 1: "vpp_var"})
         
-        league_ratings.to_csv(f"data/{league}_player_ratings.csv")
+        league_ratings.to_csv(f"data/{league}_player_ratings{prior}.csv")
         (
             pd.DataFrame(defense_callback.defense_ratings)
             .T.rename(columns={0: "vpp", 1: "vpp_var"})
-            .to_csv(f"data/{league}_player_ratings_defense.csv")
+            .to_csv(f"data/{league}_player_ratings_defense{prior}.csv")
         )
 
 
 if __name__ == "__main__":
-    main()
+    Fire(main)

@@ -93,11 +93,14 @@ class DefenseAdjustedCallback:
             player_performance.value / player_performance.n_possessions
             - defense_adjustment
         )
-        self._adjusted_offense_rating[player_performance.player_id] = _update_rating(
+        new_value = _update_rating(
             *rating,
             adjusted_performance,
             player_performance.adjusted_vpp_sd,
         )
+        if pd.isna(new_value) and player_performance.player_id == 4398907:
+            print("pause")
+        self._adjusted_offense_rating[player_performance.player_id] = new_value
 
 
 # TODO: DRY with the loop?3

@@ -106,7 +106,7 @@ def fit_std_by_sample_size(
         predicted_inverse = np.matmul(features, regression.params)
         return 1 / np.power(predicted_inverse, 1 / inv_power)
 
-    return std_by_sample_size, get_vpp_sd, regression
+    return std_by_sample_size, get_vpp_sd
 
 
 class LeagueModel(NamedTuple):
